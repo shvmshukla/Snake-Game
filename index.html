@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>SnakeGame</title>
+		<link type="text/css" rel="stylesheet" href="basicStyle.css" />
+	</head>
+
+
+	<body>
+		<h2>The Snake Game</h2>
+		<h3>Use arrow keys to control the snake. Press 'Space' to pause the game.</h3>
+		<audio id="point1" src="point_sound.mp3">
+  			Your browser does not support the audio tag.
+		</audio>
+		<audio id="point2" src="point_sound2.wav">
+  			Your browser does not support the audio tag.
+		</audio>
+		<audio id="point3" src="point_sound3.wav">
+  			Your browser does not support the audio tag.
+		</audio>
+		<canvas id="canvas" width="500" height="500" style="border:3px solid #d3d3d3;"/>
+		
+		<script>
+
+		    var score=0;
+		    var speedFactor=10;
+		    var highscore=0;
+		    var game_loop;
+			var move="right";
+			var snakeBody;
+			var food={xx:0,yy:0};
+            var isThereSpecialFood= "no";
+            var isGameOver=0;
+            var sound1 = document.getElementById("point1");
+            var sound2 = document.getElementById("point2");
+            var sound3 = document.getElementById("point3");
+            var gameSpeed = 40;
+            var isPaused = false;
+            
+			//This function creates the initial snake of length 8.
+			function create()
+			{
+				var length=8;
+				snakeBody=[];
+				for(var i=length-1;i>=0;i--)
+				{
+				    snakeBody.push({x:i,y:0});
+				}
+			}
+	
+			//This function generates a food dot at a random position in play area.
+			function cookfood()
+			{   
+				food.xx= Math.round(Math.random()*(500-10)/10);
+				food.yy= Math.round(Math.random()*(500-10)/10);
+				// "500-10" is taken such that the food doesn't appear coincidentially on the border radius of canvas.
+			}
+		
+		
+			//On pressing a key during game, the event "onkeydown" occurs, and during the occurance, this function is called, it will 				change the direction of snake.
+        	document.onkeydown=function(e)
+			{
+				var key = e.which || e.keyCode;
+				// 37 is ascii value of left arrow key.
+				// 38 is ascii value of up arrow key.
+				// 39 is ascii value of right arrow key.
+				// 40 is the ascii value of down arrow key.
+				
+				//Check whether game is over or not
+				if(isGameOver == 1)
+				{
+					isGameOver = 0;
+					initialize();
+				}
+
+				//Add pause functionality
+				if(key == 32)
+				{
+					if(isPaused == true)
+					{
+						game_loop = setInterval(gamePlay, gameSpeed);
+						isPaused = false;
+					}
+					else
+					{
+						isPaused = true;
+						clearInterval(game_loop);
+					}
+				}
+				else
+	    		if(key == 37 && move != "right") move = "left";
+				else
+				if(key == 38 && move != "down") move = "up";
+				else
+				if(key == 39 && move != "left") move = "right";
+				else
+				if(key == 40 && move != "up") move = "down";
+			
+				//this and conditions are set such that the snake does not reverse its direction.
+				//the value of move is set which will be used in gamePlay function.
+			}
+	
+			
+			function gamePlay()
+			{
+				paintCanvas();
+		
+		        var snakehead_x = snakeBody[0].x;
+				var snakehead_y = snakeBody[0].y;
+		
+		        if(move == "right") snakehead_x++;
+				else if(move == "left") snakehead_x--;
+				else if(move == "up") snakehead_y--;
+				else if(move == "down") snakehead_y++;
+		
+		
+				if(snakehead_x>49)
+				snakehead_x=0;
+				if(snakehead_x<0)
+				snakehead_x=50;
+				if(snakehead_y>49)
+				snakehead_y=0;
+				if(snakehead_y<0)
+				snakehead_y=50;
+				
+				if(isdead(snakehead_x,snakehead_y,snakeBody)==true)
+				{
+					gameOver();
+					//initialize();
+				}
+				
+				if(snakehead_x == food.xx && snakehead_y == food.yy)
+				{
+					var tail={x:snakehead_x,y:snakehead_y};
+					cookfood();
+					if(isThereSpecialFood == "yes")
+					{
+						sound3.play();
+						score+=6;
+						isThereSpecialFood = "no";
+						clearInterval(game_loop);
+						gameSpeed -= speedFactor;
+						if(speedFactor > 2) speedFactor -= 2;
+						game_loop = setInterval(gamePlay, gameSpeed);
+					}
+					else
+					{
+						sound2.play();
+						score++;
+						if(score%5 == 0)
+						isThereSpecialFood="yes";
+					}
+					
+				}
+				else
+				{
+					var tail=snakeBody.pop();
+					tail.x=snakehead_x;
+					tail.y=snakehead_y;
+				}
+				
+				snakeBody.unshift(tail);
+				
+				if(isThereSpecialFood == "no")
+				paintCell(food.xx, food.yy, "#F2DB06");
+				else
+				makeSpecialFoodBlink(food.xx, food.yy);
+				
+				paintScore(score, highscore);
+				paintWholeSnake(snakeBody);
+				
+			}
+		
+    		//Check whether the snake is dead or not...
+    		function isdead(zx,zy,arr)
+			{
+				for(var i = 0; i < arr.length; i++)
+				{
+					if(arr[i].x == zx && arr[i].y == zy)
+					return true;
+				}
+					return false;
+			}
+			
+			//Displays Game Over Screen
+			function gameOver()
+			{
+				sound1.play();
+				gameOver_canvas(score, highscore);
+				if(highscore < score) highscore = score;
+				clearInterval(game_loop);
+				isGameOver=1;
+				//setTimeout(initialize, 3000);
+			}
+
+			//Called at start or gameover.
+			function initialize()
+			{
+				sound1.loop = false;
+				sound2.loop = false;
+				sound3.loop = false;
+				gameSpeed = 80;
+				isPaused = false;
+				score=0;
+			    move = "right";
+				create();
+				cookfood();
+				isThereSpecialFood = "no";
+				game_loop = setInterval(gamePlay, gameSpeed);
+			}
+			initialize();
+		</script>
+		
+		<script type="text/javascript" src="painters.js" ></script>
+	</body>
+</html>
